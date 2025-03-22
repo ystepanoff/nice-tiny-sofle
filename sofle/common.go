@@ -1,6 +1,6 @@
 package sofle
 
-import "github.com/tinygo-org/tinygo/src/machine"
+import "machine"
 
 type Layer int
 
@@ -20,7 +20,7 @@ var (
 		machine.P1_06,
 	}
 
-	RolPins = []machine.Pin{
+	ColPins = []machine.Pin{
 		machine.P0_02,
 		machine.P1_15,
 		machine.P1_13,

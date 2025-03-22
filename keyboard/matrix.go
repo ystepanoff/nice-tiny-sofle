@@ -1,9 +1,8 @@
 package keyboard
 
 import (
+	"machine"
 	"time"
-
-	"github.com/tinygo-org/tinygo/src/machine"
 )
 
 type Matrix struct {
@@ -33,10 +32,10 @@ func (m *Matrix) Scan() [][]bool {
 		pressed[r] = make([]bool, len(m.colPins))
 
 		row.Low()
-		time.Sleep(*time.Microsecond)
+		time.Sleep(2 * time.Microsecond)
 
 		for c, col := range m.colPins {
-			pressed[c] = !col.Get()
+			pressed[r][c] = !col.Get()
 		}
 
 		row.High()
