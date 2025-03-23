@@ -54,5 +54,5 @@ func Draw(x, y, w, h int16, data []byte) {
 			}
 		}
 	}
-	// oled.DrawMonochromeBitmap(x, y, w, h, data[:])
+	oled.Display()
 }

@@ -9,6 +9,12 @@ import (
 	"github.com/ystepanoff/nice-tiny-sofle/sofle"
 )
 
+func updateDisplay() {
+	if sofle.IsLeft {
+		display.Draw(0, 0, 32, 32, sofle.SampleImage)
+	}
+}
+
 func main() {
 	display.Init()
 	mat := keyboard.NewMatrix(sofle.RowPins, sofle.ColPins)
@@ -24,6 +30,8 @@ func main() {
 				}
 			}
 		}
+
+		updateDisplay()
 
 		time.Sleep(100 * time.Millisecond)
 
