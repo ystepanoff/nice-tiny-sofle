@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ystepanoff/nice-tiny-sofle/display"
 	"github.com/ystepanoff/nice-tiny-sofle/keyboard"
 	"github.com/ystepanoff/nice-tiny-sofle/sofle"
 )
 
 func main() {
+	display.Init()
 	mat := keyboard.NewMatrix(sofle.RowPins, sofle.ColPins)
 
 	for {
