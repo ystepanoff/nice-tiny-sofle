@@ -39,8 +39,15 @@ func Init() {
 	oled.Display()
 }
 
-func Write(msg string, x, y int16) {
-	tinyfont.WriteLine(&oled, &proggy.TinySZ8pt7b, x, y, msg, WHITE)
+func Write(x, y int, msg string) {
+	tinyfont.WriteLine(
+		&oled,
+		&proggy.TinySZ8pt7b,
+		int16(x),
+		int16(y),
+		msg,
+		WHITE,
+	)
 }
 
 func Draw(x, y, w, h int16, data []byte) {
@@ -54,5 +61,12 @@ func Draw(x, y, w, h int16, data []byte) {
 			}
 		}
 	}
+}
+
+func Clear() {
+	oled.ClearBuffer()
+}
+
+func Display() {
 	oled.Display()
 }

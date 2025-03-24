@@ -6,17 +6,23 @@ import (
 
 	"github.com/ystepanoff/nice-tiny-sofle/display"
 	"github.com/ystepanoff/nice-tiny-sofle/keyboard"
+	"github.com/ystepanoff/nice-tiny-sofle/metrics"
 	"github.com/ystepanoff/nice-tiny-sofle/sofle"
 )
 
 func updateDisplay() {
+	display.Clear()
 	if sofle.IsLeft {
 		display.Draw(0, 0, 32, 32, sofle.SampleImage)
+		display.Write(40, 16, fmt.Sprintf("%.2f", metrics.ReadBatteryLevel()))
 	}
+	display.Display()
 }
 
 func main() {
 	display.Init()
+	metrics.InitBattery()
+
 	mat := keyboard.NewMatrix(sofle.RowPins, sofle.ColPins)
 
 	for {
@@ -32,6 +38,8 @@ func main() {
 		}
 
 		updateDisplay()
+
+		println(metrics.ReadBatteryLevel())
 
 		time.Sleep(100 * time.Millisecond)
 
