@@ -11,9 +11,11 @@ const IsLeft = true
 
 var Keymaps = map[Layer][][]kb.Keycode{
 	Base: {
-		{kb.KC_Q, kb.KC_W, kb.KC_E, kb.KC_R, kb.KC_T},
-		{kb.KC_A, kb.KC_S, kb.KC_D, kb.KC_F, kb.KC_G},
-		{kb.KC_Z, kb.KC_X, kb.KC_C, kb.KC_V, kb.KC_B},
+		{kb.KC_ESC, kb.KC_1, kb.KC_2, kb.KC_3, kb.KC_4, kb.KC_5},
+		{kb.KC_NO, kb.KC_Q, kb.KC_W, kb.KC_F, kb.KC_P, kb.KC_B},
+		{kb.KC_TAB, kb.KC_A, kb.KC_R, kb.KC_S, kb.KC_T, kb.KC_G},
+		{kb.KC_LSHIFT, kb.KC_Z, kb.KC_X, kb.KC_C, kb.KC_D, kb.KC_V, kb.KC_MUTE},
+		{kb.KC_LCTRL, kb.KC_LALT, kb.KC_LGUI, kb.KC_NO, kb.KC_SPACE},
 	},
 	Upper: {
 		{kb.KC_1, kb.KC_2, kb.KC_3, kb.KC_4, kb.KC_5},

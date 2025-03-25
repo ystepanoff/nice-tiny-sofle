@@ -19,12 +19,8 @@ func updateDisplay() {
 	display.Display()
 }
 
-func main() {
-	display.Init()
-	metrics.InitBattery()
-
+func keyPressesLoop() {
 	mat := keyboard.NewMatrix(sofle.RowPins, sofle.ColPins)
-
 	for {
 		pressed := mat.Scan()
 
@@ -37,14 +33,29 @@ func main() {
 			}
 		}
 
-		updateDisplay()
-
-		println(metrics.ReadBatteryLevel())
-
-		time.Sleep(100 * time.Millisecond)
-
 		if len(comb) > 0 {
 			fmt.Printf("%v\n\r", comb)
 		}
+
+		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+func displayLoop() {
+	display.Init()
+
+	for {
+		updateDisplay()
+
+		time.Sleep(400 * time.Millisecond)
+	}
+}
+
+func main() {
+	// Battery readings are not reliable just yet,
+	// leaving it for later to investigate
+	// metrics.InitBattery()
+
+	go keyPressesLoop()
+	go displayLoop()
 }
