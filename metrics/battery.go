@@ -11,22 +11,26 @@ var (
 )
 
 const (
-	nSamples             = 64
-	adcResolution        = 16
+	adcReference         = 600
+	adcResolution        = 12
+	adcSamples           = 16
+	adcSampleTime        = 40
 	minBatteryV          = 3000
 	maxBatteryV          = 4200
-	batteryReadingPeriod = 10
+	batteryReadingPeriod = 60
 )
 
 func InitBattery() {
 	machine.InitADC()
-	batteryPin = machine.ADC{Pin: machine.P0_04}
+	batteryPin = machine.ADC{Pin: machine.AIN2}
 	batteryPin.Configure(machine.ADCConfig{
-		Reference:  minBatteryV,
-		Resolution: adcResolution,
+		Reference:  adcReference,
+		Resolution: adcReference,
+		Samples:    adcSamples,
+		SampleTime: adcSampleTime,
 	})
-	lastBatteryReading = time.Now()
 	time.Sleep(1 * time.Second)
+	lastBatteryReading = time.Now()
 }
 
 func ShouldReadBatteryLevel() bool {
@@ -37,26 +41,19 @@ func ShouldReadBatteryLevel() bool {
 	return false
 }
 
-func ReadBatteryLevel() float32 {
+func ReadBatteryLevel() uint16 {
 	return readBatteryVoltage()
 }
 
-func readBatteryVoltage() float32 {
-	raw := readAverageADC(batteryPin, nSamples)
+func readBatteryVoltage() uint16 {
+	time.Sleep(1 * time.Second)
+	raw := batteryPin.Get()
+	//raw := readAverageADC(batteryPin, nSamples)
 	//batteryV := float32(raw) * float32(3000.0/4096.0)
 	/*if batteryV < minBatteryV {
 		batteryV = minBatteryV
 	} else if batteryV > maxBatteryV {
 		batteryV = maxBatteryV
 	}*/
-	return float32(raw) / 2.0
-}
-
-func readAverageADC(adc machine.ADC, samples int) uint16 {
-	var sum uint32 = 0
-	for i := 0; i < samples; i++ {
-		sum += uint32(adc.Get())
-		time.Sleep(10 * time.Millisecond)
-	}
-	return uint16(sum / uint32(samples))
+	return raw
 }

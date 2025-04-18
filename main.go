@@ -38,7 +38,7 @@ func scanMatrix(mat *keyboard.Matrix) {
 
 func readBatteryLevel() {
 	if metrics.ShouldReadBatteryLevel() {
-		fmt.Printf("%.2f\n\r", metrics.ReadBatteryLevel())
+		fmt.Printf("%v\n\r", metrics.ReadBatteryLevel())
 	}
 }
 
