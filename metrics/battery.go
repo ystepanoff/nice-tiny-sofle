@@ -10,7 +10,7 @@ import (
 const (
 	OVERSAMPLE               = 4    // 4x oversampling
 	VDDHDIV5                 = 0x0D // SAADC_CH_PSELP_PSELP_VDDHDIV5
-	BATTERY_READING_INTERVAL = 5
+	BATTERY_READING_INTERVAL = 60 * time.Second
 	SAADC_TIMEOUT            = 2 * time.Second
 	SAADC_SAMPLE_DELAY       = 10 * time.Millisecond
 	SAADC_RESET_DELAY        = 10 * time.Millisecond
@@ -81,7 +81,6 @@ func sampleRaw() (uint16, error) {
 			resetSAADC()
 			return 0, fmt.Errorf("timeout waiting for SAADC END event")
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
 
 	nrf.SAADC.TASKS_STOP.Set(1)
@@ -92,7 +91,6 @@ func sampleRaw() (uint16, error) {
 			resetSAADC()
 			return 0, fmt.Errorf("timeout waiting for SAADC STOPPED event")
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
 
 	return uint16(saadcWord & 0xFFFF), nil

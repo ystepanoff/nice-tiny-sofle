@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+const (
+	MATRIX_SCAN_DELAY = 2 * time.Microsecond
+)
+
 type Matrix struct {
 	rowPins []machine.Pin
 	colPins []machine.Pin
@@ -32,7 +36,7 @@ func (m *Matrix) Scan() [][]bool {
 		pressed[r] = make([]bool, len(m.colPins))
 
 		row.Low()
-		time.Sleep(2 * time.Microsecond)
+		time.Sleep(MATRIX_SCAN_DELAY)
 
 		for c, col := range m.colPins {
 			pressed[r][c] = !col.Get()
