@@ -15,7 +15,12 @@ func updateDisplay() {
 	display.Clear()
 	if sofle.IsLeft {
 		display.Draw(0, 0, 32, 32, sofle.SampleImage)
-		display.Write(40, 16, fmt.Sprintf("%.2f", metrics.ReadBatteryLevel()))
+		level, err := metrics.ReadBatteryLevel()
+		if err != nil {
+			display.Write(40, 16, "ERR")
+		} else {
+			display.Write(40, 16, fmt.Sprintf("%.2f", float64(level)))
+		}
 	}
 	display.Display()
 }*/
@@ -37,20 +42,33 @@ func scanMatrix(mat *keyboard.Matrix) {
 }
 
 func readBatteryLevel() {
-	if metrics.ShouldReadBatteryLevel() {
-		fmt.Printf("%v\n\r", metrics.ReadBatteryLevel())
+	pct, err := metrics.ReadBatteryLevel()
+	if err != nil {
+		fmt.Printf("Battery reading error: %v\n\r", err)
+		return
 	}
+
+	fmt.Printf("Battery: (%d%%)\n\r", pct)
 }
 
 func main() {
-	metrics.InitBattery()
+	metrics.InitSAADC()
 
 	mat := keyboard.NewMatrix(sofle.RowPins, sofle.ColPins)
 
-	for {
-		go scanMatrix(mat)
-		go readBatteryLevel()
+	// Create tickers for periodic tasks
+	matrixTicker := time.NewTicker(100 * time.Millisecond)
+	batteryTicker := time.NewTicker(metrics.BATTERY_READING_INTERVAL * time.Second)
 
-		time.Sleep(100 * time.Millisecond)
+	defer matrixTicker.Stop()
+	defer batteryTicker.Stop()
+
+	for {
+		select {
+		case <-matrixTicker.C:
+			go scanMatrix(mat)
+		case <-batteryTicker.C:
+			go readBatteryLevel()
+		}
 	}
 }
