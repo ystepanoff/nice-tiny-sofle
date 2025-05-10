@@ -1,3 +1,6 @@
+//go:build niceview
+// +build niceview
+
 package display
 
 import (

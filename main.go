@@ -6,46 +6,75 @@ import (
 	"github.com/ystepanoff/nice-tiny-sofle/display"
 	"github.com/ystepanoff/nice-tiny-sofle/keyboard"
 	"github.com/ystepanoff/nice-tiny-sofle/metrics"
+	"github.com/ystepanoff/nice-tiny-sofle/power"
 	"github.com/ystepanoff/nice-tiny-sofle/sofle"
 )
 
+const (
+	INITIAL_SLEEP_INTERVAL               = 3 * time.Second
+	SCAN_INTERVAL_MONITOR_SLEEP_INTERVAL = 100 * time.Millisecond
+)
+
 func main() {
+	time.Sleep(INITIAL_SLEEP_INTERVAL)
+
+	metrics.InitSAADC()
+	println("SAADC initialised")
+
 	if err := display.Init(); err != nil {
 		println("Failed to initialise display:", err.Error())
 		return
 	}
 	println("nice!view initialised")
 
-	metrics.InitSAADC()
-	println("SAADC initialised")
+	power.Init(func(state power.PowerState) {
+		println("Power state changed to:", state)
+	})
+	println("Power management initialised")
 
-	// Initialize keyboard matrix and handler
 	matrix := keyboard.NewMatrix(sofle.RowPins, sofle.ColPins)
 	keyHandler := keyboard.NewKeyHandler(matrix, func(row, col int, pressed bool) {
 		println("Key event:", row, col, pressed)
+		power.UpdateActivity()
 	})
-	println("Keyboard initialized")
+	println("Keyboard initialised")
 
 	batteryTicker := time.NewTicker(metrics.BATTERY_READING_INTERVAL)
 	defer batteryTicker.Stop()
 
-	keyboardTicker := time.NewTicker(keyboard.SCAN_INTERVAL)
+	keyboardTicker := time.NewTicker(power.GetScanInterval())
 	defer keyboardTicker.Stop()
+
+	// Scan interval monitor
+	go func() {
+		var scanInterval time.Duration
+		for {
+			time.Sleep(SCAN_INTERVAL_MONITOR_SLEEP_INTERVAL)
+			newInterval := power.GetScanInterval()
+			if newInterval != scanInterval {
+				keyboardTicker.Reset(newInterval)
+				println("Keyboard scan interval updated to:", newInterval)
+				scanInterval = newInterval
+			}
+		}
+	}()
 
 	// Main loop
 	for {
 		select {
 		case <-batteryTicker.C:
-			level, err := metrics.ReadBatteryLevel()
-			if err != nil {
-				println("Failed to read battery level:", err.Error())
-				continue
-			}
-			println("Battery level:", level, "%")
+			if power.GetCurrentState() != power.Sleep {
+				level, err := metrics.ReadBatteryLevel()
+				if err != nil {
+					println("Failed to read battery level:", err.Error())
+					continue
+				}
+				println("Battery level:", level, "%")
 
-			if err := display.Update(uint8(level)); err != nil {
-				println("Failed to update display:", err.Error())
-				continue
+				if err := display.Update(uint8(level)); err != nil {
+					println("Failed to update display:", err.Error())
+					continue
+				}
 			}
 
 		case <-keyboardTicker.C:
