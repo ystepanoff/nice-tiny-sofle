@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	MATRIX_SCAN_DELAY = 2 * time.Microsecond
+	MATRIX_SCAN_DELAY = 1 * time.Microsecond
 )
 
 type Matrix struct {

@@ -4,35 +4,10 @@
 package sofle
 
 import (
-	kb "github.com/ystepanoff/nice-tiny-sofle/keyboard"
+	kb "machine/usb/hid/keyboard"
 )
 
 const IsLeft = true
-
-var Keymaps = map[Layer][][]kb.Keycode{
-	Base: {
-		{kb.KC_ESC, kb.KC_1, kb.KC_2, kb.KC_3, kb.KC_4, kb.KC_5},
-		{kb.KC_NO, kb.KC_Q, kb.KC_W, kb.KC_F, kb.KC_P, kb.KC_B},
-		{kb.KC_TAB, kb.KC_A, kb.KC_R, kb.KC_S, kb.KC_T, kb.KC_G},
-		{kb.KC_LSHIFT, kb.KC_Z, kb.KC_X, kb.KC_C, kb.KC_D, kb.KC_V, kb.KC_MUTE},
-		{kb.KC_LCTRL, kb.KC_LALT, kb.KC_LGUI, kb.KC_NO, kb.KC_SPACE},
-	},
-	Upper: {
-		{kb.KC_1, kb.KC_2, kb.KC_3, kb.KC_4, kb.KC_5},
-		{kb.KC_6, kb.KC_7, kb.KC_8, kb.KC_9, kb.KC_0},
-		{kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO},
-	},
-	Lower: {
-		{kb.KC_LEFT, kb.KC_UP, kb.KC_RIGHT, kb.KC_DOWN, kb.KC_ESC},
-		{kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO},
-		{kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO},
-	},
-	Adjust: {
-		{kb.KC_VOLU, kb.KC_VOLD, kb.KC_PGUP, kb.KC_PGDN, kb.KC_ESC},
-		{kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO},
-		{kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO, kb.KC_NO},
-	},
-}
 
 var SampleImage = []byte{
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x04,
@@ -46,4 +21,14 @@ var SampleImage = []byte{
 	0x40, 0x18, 0x31, 0x04, 0x40, 0x10, 0x11, 0x04, 0xc0, 0x11, 0x11, 0x07,
 	0x60, 0x90, 0x13, 0x0c, 0xe0, 0xff, 0xfe, 0x0f, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+}
+
+func init() {
+	Keymap = [][]kb.Keycode{
+		{kb.KeyEsc, kb.Key1, kb.Key2, kb.Key3, kb.Key4, kb.Key5},
+		{kb.KeyTilde, kb.KeyQ, kb.KeyW, kb.KeyF, kb.KeyP, kb.KeyB},
+		{kb.KeyTab, kb.KeyA, kb.KeyR, kb.KeyS, kb.KeyT, kb.KeyG},
+		{kb.KeyLeftShift, kb.KeyZ, kb.KeyX, kb.KeyC, kb.KeyD, kb.KeyV, kb.KeyMediaMute},
+		{kb.KeyModifierLeftCtrl, kb.KeyModifierLeftAlt, kb.KeyModifierLeftGUI, KeyNo, kb.KeySpace},
+	}
 }

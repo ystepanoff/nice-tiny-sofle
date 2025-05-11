@@ -1,14 +1,9 @@
 package sofle
 
-import "machine"
+import (
+	"machine"
 
-type Layer int
-
-const (
-	Base Layer = iota
-	Upper
-	Lower
-	Adjust
+	kb "machine/usb/hid/keyboard"
 )
 
 var (
@@ -28,4 +23,8 @@ var (
 		machine.P0_10,
 		machine.P0_09,
 	}
+
+	KeyNo = kb.Keycode(0x00)
+
+	Keymap [][]kb.Keycode
 )

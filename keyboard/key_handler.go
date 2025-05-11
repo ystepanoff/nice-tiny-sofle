@@ -5,16 +5,13 @@ import (
 )
 
 const (
-	DEBOUNCE_TIME   = 5 * time.Millisecond
-	SCAN_INTERVAL   = 1 * time.Millisecond
+	SCAN_INTERVAL   = 100 * time.Microsecond
 	REPEAT_DELAY    = 500 * time.Millisecond // Time before repeat starts
 	REPEAT_INTERVAL = 50 * time.Millisecond  // Time between repeats
 )
 
 type KeyState struct {
 	Pressed     bool
-	LastChange  time.Time
-	Debounced   bool
 	LastPressed bool
 	RepeatCount int
 	LastRepeat  time.Time
@@ -58,18 +55,9 @@ func (h *KeyHandler) Scan() {
 			state := &h.keyStates[r][c]
 			current := pressed[r][c]
 
+			// State change detection
 			if current != state.Pressed {
 				state.Pressed = current
-				state.LastChange = now
-				state.Debounced = false
-				if !current {
-					state.RepeatCount = 0
-					state.LastRepeat = time.Time{}
-				}
-			}
-
-			if !state.Debounced && now.Sub(state.LastChange) >= DEBOUNCE_TIME {
-				state.Debounced = true
 				if state.Pressed != state.LastPressed {
 					state.LastPressed = state.Pressed
 					if h.onKeyEvent != nil {
@@ -77,11 +65,14 @@ func (h *KeyHandler) Scan() {
 					}
 					if state.Pressed {
 						state.LastRepeat = now
+					} else {
+						state.RepeatCount = 0
 					}
 				}
 			}
 
-			if state.Debounced && state.Pressed {
+			// Key repeat handling
+			if state.Pressed {
 				timeSinceLastRepeat := now.Sub(state.LastRepeat)
 
 				if state.RepeatCount == 0 {

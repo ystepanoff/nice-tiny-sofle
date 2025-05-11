@@ -18,8 +18,10 @@ const (
 )
 
 var (
-	saadcWord uint32
-	bufPtr    uint32
+	saadcWord   uint32
+	bufPtr      uint32
+	lastReading time.Time
+	lastLevel   uint16
 )
 
 func InitSAADC() {
@@ -116,9 +118,18 @@ func liIonPct(mV uint32) uint8 {
 }
 
 func ReadBatteryLevel() (uint16, error) {
+	// If we've read the battery level recently, return the cached value
+	if time.Since(lastReading) < BATTERY_READING_INTERVAL/2 {
+		return lastLevel, nil
+	}
+
 	raw, err := sampleRaw()
 	if err != nil {
-		return 0, err
+		return lastLevel, err
 	}
-	return uint16(liIonPct(rawToMillivolts(raw))), nil
+
+	level := uint16(liIonPct(rawToMillivolts(raw)))
+	lastLevel = level
+	lastReading = time.Now()
+	return level, nil
 }
