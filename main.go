@@ -26,7 +26,10 @@ var hidkb = keyboard.New()
 func main() {
 	time.Sleep(INITIAL_SLEEP_INTERVAL)
 
-	metrics.InitSAADC()
+	if err := metrics.InitSAADC(); err != nil {
+		println("Failed to initialise SAADC:", err.Error())
+		return
+	}
 	println("SAADC initialised")
 
 	if err := display.Init(); err != nil {

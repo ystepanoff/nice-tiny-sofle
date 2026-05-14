@@ -29,7 +29,7 @@ const (
 	MONITOR_POWER_STATE_INTERVAL = 100 * time.Millisecond
 
 	ACTIVE_SPI_FREQ = 2000000
-	IDLE_SPI_FREQ   = 500000
+	IDLE_SPI_FREQ   = 1000000 // Sharp memory LCD min ~1 MHz
 )
 
 var (
@@ -46,14 +46,7 @@ func Init(onStateChangeCallback func(PowerState)) {
 	currentState.Store(int32(Active))
 	lastActivityNano.Store(time.Now().UnixNano())
 
-	configurePowerManagement()
 	go monitorPowerState()
-}
-
-func configurePowerManagement() {
-	nrf.POWER.SYSTEMOFF.Set(0)
-	nrf.POWER.POFCON.Set(0)
-	nrf.POWER.RESETREAS.Set(0)
 }
 
 func monitorPowerState() {
@@ -100,6 +93,8 @@ func transitionTo(newState PowerState) {
 	case Active:
 		nrf.CLOCK.EVENTS_HFCLKSTARTED.Set(0)
 		nrf.CLOCK.TASKS_HFCLKSTART.Set(1)
+		for nrf.CLOCK.EVENTS_HFCLKSTARTED.Get() == 0 {
+		}
 
 		machine.SPI0.Configure(machine.SPIConfig{
 			Frequency: ACTIVE_SPI_FREQ,

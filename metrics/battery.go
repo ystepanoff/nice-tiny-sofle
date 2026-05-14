@@ -8,13 +8,17 @@ import (
 )
 
 const (
-	OVERSAMPLE               = 4    // 4x oversampling
+	// SAADC oversample register value. Hardware does (1 << OVERSAMPLE_REG) samples
+	// per RESULT word — here, 16× oversampling.
+	OVERSAMPLE_REG    = 4
+	OVERSAMPLE_FACTOR = 1 << OVERSAMPLE_REG
+
 	VDDHDIV5                 = 0x0D // SAADC_CH_PSELP_PSELP_VDDHDIV5
 	BATTERY_READING_INTERVAL = 60 * time.Second
-	SAADC_TIMEOUT            = 5 * time.Second
-	SAADC_SAMPLE_DELAY       = 100 * time.Millisecond
-	SAADC_RESET_DELAY        = 100 * time.Millisecond
-	SAADC_EVENT_DELAY        = 100 * time.Millisecond
+
+	SAADC_CALIBRATION_TIMEOUT = 100 * time.Millisecond
+	SAADC_EVENT_TIMEOUT       = 10 * time.Millisecond
+	SAADC_RESET_DELAY         = 1 * time.Millisecond
 )
 
 var (
@@ -24,10 +28,10 @@ var (
 	lastLevel   uint16
 )
 
-func InitSAADC() {
+func InitSAADC() error {
 	nrf.SAADC.ENABLE.Set(1)
 	nrf.SAADC.RESOLUTION.Set(nrf.SAADC_RESOLUTION_VAL_12bit)
-	nrf.SAADC.OVERSAMPLE.Set(OVERSAMPLE)
+	nrf.SAADC.OVERSAMPLE.Set(OVERSAMPLE_REG)
 
 	nrf.SAADC.CH[0].PSELP.Set(VDDHDIV5)
 	nrf.SAADC.CH[0].PSELN.Set(0x1F)
@@ -42,10 +46,16 @@ func InitSAADC() {
 
 	nrf.SAADC.EVENTS_CALIBRATEDONE.Set(0)
 	nrf.SAADC.TASKS_CALIBRATEOFFSET.Set(1)
+
+	deadline := time.Now().Add(SAADC_CALIBRATION_TIMEOUT)
 	for nrf.SAADC.EVENTS_CALIBRATEDONE.Get() == 0 {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("SAADC calibration timeout")
+		}
 	}
 
 	bufPtr = uint32(uintptr(unsafe.Pointer(&saadcWord)))
+	return nil
 }
 
 func resetSAADC() {
@@ -53,6 +63,17 @@ func resetSAADC() {
 	time.Sleep(SAADC_RESET_DELAY)
 	nrf.SAADC.ENABLE.Set(1)
 	time.Sleep(SAADC_RESET_DELAY)
+}
+
+func waitForEvent(reg interface{ Get() uint32 }, name string) error {
+	deadline := time.Now().Add(SAADC_EVENT_TIMEOUT)
+	for reg.Get() == 0 {
+		if time.Now().After(deadline) {
+			resetSAADC()
+			return fmt.Errorf("timeout waiting for SAADC %s event", name)
+		}
+	}
+	return nil
 }
 
 func sampleRaw() (uint16, error) {
@@ -64,38 +85,23 @@ func sampleRaw() (uint16, error) {
 	nrf.SAADC.EVENTS_STOPPED.Set(0)
 
 	nrf.SAADC.TASKS_START.Set(1)
-
-	startTime := time.Now()
-	for nrf.SAADC.EVENTS_STARTED.Get() == 0 {
-		if time.Since(startTime) > SAADC_TIMEOUT {
-			resetSAADC()
-			return 0, fmt.Errorf("timeout waiting for SAADC STARTED event")
-		}
+	if err := waitForEvent(&nrf.SAADC.EVENTS_STARTED, "STARTED"); err != nil {
+		return 0, err
 	}
 
-	for i := 0; i < (1 << OVERSAMPLE); i++ {
+	// One TASKS_SAMPLE per oversample step. The hardware accumulates internally
+	// and raises EVENTS_END after OVERSAMPLE_FACTOR samples.
+	for i := 0; i < OVERSAMPLE_FACTOR; i++ {
 		nrf.SAADC.TASKS_SAMPLE.Set(1)
-		time.Sleep(SAADC_SAMPLE_DELAY)
 	}
 
-	startTime = time.Now()
-	for nrf.SAADC.EVENTS_END.Get() == 0 {
-		if time.Since(startTime) > SAADC_TIMEOUT {
-			resetSAADC()
-			return 0, fmt.Errorf("timeout waiting for SAADC END event")
-		}
-		time.Sleep(SAADC_EVENT_DELAY)
+	if err := waitForEvent(&nrf.SAADC.EVENTS_END, "END"); err != nil {
+		return 0, err
 	}
 
 	nrf.SAADC.TASKS_STOP.Set(1)
-
-	startTime = time.Now()
-	for nrf.SAADC.EVENTS_STOPPED.Get() == 0 {
-		if time.Since(startTime) > SAADC_TIMEOUT {
-			resetSAADC()
-			return 0, fmt.Errorf("timeout waiting for SAADC STOPPED event")
-		}
-		time.Sleep(SAADC_EVENT_DELAY)
+	if err := waitForEvent(&nrf.SAADC.EVENTS_STOPPED, "STOPPED"); err != nil {
+		return 0, err
 	}
 
 	return uint16(saadcWord & 0xFFFF), nil
@@ -118,8 +124,7 @@ func liIonPct(mV uint32) uint8 {
 }
 
 func ReadBatteryLevel() (uint16, error) {
-	// If we've read the battery level recently, return the cached value
-	if time.Since(lastReading) < BATTERY_READING_INTERVAL/2 {
+	if !lastReading.IsZero() && time.Since(lastReading) < BATTERY_READING_INTERVAL/2 {
 		return lastLevel, nil
 	}
 
