@@ -1,12 +1,15 @@
 package power
 
 import (
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"device/nrf"
 	"machine"
-	"time"
 )
 
-type PowerState int
+type PowerState int32
 
 const (
 	Active PowerState = iota
@@ -30,17 +33,18 @@ const (
 )
 
 var (
-	currentState     PowerState = Active
-	lastActivity     time.Time  = time.Now()
+	currentState     atomic.Int32 // PowerState
+	lastActivityNano atomic.Int64
 	onStateChange    func(PowerState)
 	stopMonitor      chan struct{}
-	lastScanInterval time.Duration
+	transitionMu     sync.Mutex
 )
 
 func Init(onStateChangeCallback func(PowerState)) {
 	onStateChange = onStateChangeCallback
 	stopMonitor = make(chan struct{})
-	lastScanInterval = ACTIVE_SCAN_INTERVAL
+	currentState.Store(int32(Active))
+	lastActivityNano.Store(time.Now().UnixNano())
 
 	configurePowerManagement()
 	go monitorPowerState()
@@ -59,10 +63,9 @@ func monitorPowerState() {
 	for {
 		select {
 		case <-ticker.C:
-			now := time.Now()
-			idleTime := now.Sub(lastActivity)
+			idleTime := time.Since(time.Unix(0, lastActivityNano.Load()))
 
-			switch currentState {
+			switch GetCurrentState() {
 			case Active:
 				if idleTime > IDLE_TIMEOUT {
 					transitionTo(Idle)
@@ -86,14 +89,11 @@ func monitorPowerState() {
 }
 
 func transitionTo(newState PowerState) {
-	if newState == currentState {
-		return
-	}
+	transitionMu.Lock()
+	defer transitionMu.Unlock()
 
-	switch currentState {
-	case Active:
-	case Idle:
-	case Sleep:
+	if PowerState(currentState.Load()) == newState {
+		return
 	}
 
 	switch newState {
@@ -123,39 +123,32 @@ func transitionTo(newState PowerState) {
 		configureWakeSources()
 	}
 
-	currentState = newState
+	currentState.Store(int32(newState))
 	if onStateChange != nil {
 		onStateChange(newState)
 	}
 }
 
 func UpdateActivity() {
-	lastActivity = time.Now()
-	if currentState != Active {
+	lastActivityNano.Store(time.Now().UnixNano())
+	if GetCurrentState() != Active {
 		transitionTo(Active)
 	}
 }
 
 func GetCurrentState() PowerState {
-	return currentState
+	return PowerState(currentState.Load())
 }
 
 func GetScanInterval() time.Duration {
-	interval := ACTIVE_SCAN_INTERVAL
-	switch currentState {
-	case Active:
-		interval = ACTIVE_SCAN_INTERVAL
+	switch GetCurrentState() {
 	case Idle:
-		interval = IDLE_SCAN_INTERVAL
+		return IDLE_SCAN_INTERVAL
 	case Sleep:
-		interval = SLEEP_SCAN_INTERVAL
+		return SLEEP_SCAN_INTERVAL
+	default:
+		return ACTIVE_SCAN_INTERVAL
 	}
-
-	if interval != lastScanInterval {
-		lastScanInterval = interval
-	}
-
-	return interval
 }
 
 func configureWakeSources() {
