@@ -5,6 +5,7 @@
 package main
 
 import (
+	"machine"
 	"time"
 
 	"machine/usb/hid/keyboard"
@@ -17,14 +18,25 @@ import (
 )
 
 const (
-	INITIAL_SLEEP_INTERVAL               = 3 * time.Second
+	USB_HOST_WAIT_TIMEOUT                = 2 * time.Second
+	USB_HOST_WAIT_POLL                   = 10 * time.Millisecond
 	SCAN_INTERVAL_MONITOR_SLEEP_INTERVAL = 100 * time.Millisecond
 )
 
 var hidkb = keyboard.New()
 
+// waitForHost blocks until the host opens the USB CDC serial port
+// (asserts DTR) or the timeout expires. The timeout lets the
+// non-USB-attached half boot promptly on battery.
+func waitForHost() {
+	deadline := time.Now().Add(USB_HOST_WAIT_TIMEOUT)
+	for !machine.Serial.DTR() && time.Now().Before(deadline) {
+		time.Sleep(USB_HOST_WAIT_POLL)
+	}
+}
+
 func main() {
-	time.Sleep(INITIAL_SLEEP_INTERVAL)
+	waitForHost()
 
 	if err := metrics.InitSAADC(); err != nil {
 		println("Failed to initialise SAADC:", err.Error())
