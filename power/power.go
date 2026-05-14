@@ -3,7 +3,6 @@ package power
 import (
 	"device/nrf"
 	"machine"
-	"runtime"
 	"time"
 )
 
@@ -79,8 +78,6 @@ func monitorPowerState() {
 					transitionTo(Active)
 				}
 			}
-
-			runtime.GC()
 
 		case <-stopMonitor:
 			return
